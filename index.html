@@ -1,36 +1,40 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>고양이 가라사대</title>
 </head>
 <style>
-body {
-    text-align: center;
-}
-
-.main-card button {
-    position: relative;
-    left: -45px;
-    bottom: 15px;
-}
-
-.favorites {
-    list-style: none;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 15px;
-}
+    body {
+        text-align: center;
+    }
+    .main-card button {
+        position: relative;
+        left: -45px;
+        bottom: 15px;
+    }
+    .favorites {
+        list-style: none;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
 </style>
 <body>
 <div id="app"></div>
-<script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
+<script
+        src="https://unpkg.com/react@17/umd/react.development.js"
+        crossorigin
+></script>
+<script
+        src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+        crossorigin
+></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 <script type="text/babel">
   const jsonLocalStorage = {
     setItem: (key, value) => {
@@ -41,39 +45,42 @@ body {
     },
   };
 
-  console.log("야옹");
+  const fetchCat = async (text) => {
+    const OPEN_API_DOMAIN = "https://cataas.com";
+    const response = await fetch(
+      `${OPEN_API_DOMAIN}/cat/says/${text}?json=true`
+    );
+    const responseJson = await response.json();
+    return `${OPEN_API_DOMAIN}/${responseJson.url}`;
+  };
 
   const Title = (props) => {
     return <h1>{props.children}</h1>;
   };
 
-  // 생성
-  const Form = ({updateMainCat}) => {
+  const Form = ({ updateMainCat }) => {
     const includesHangul = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/i.test(text);
     const [value, setValue] = React.useState("");
-    const [errorMessage, setErrorMessage] = React.useState('');
+    const [errorMessage, setErrorMessage] = React.useState("");
 
     function handleInputChange(e) {
       const userValue = e.target.value;
       setErrorMessage("");
-
       if (includesHangul(userValue)) {
-        setErrorMessage('한글은 입력할 수 없습니다.');
+        setErrorMessage("한글은 입력할 수 없습니다.");
       }
-
-      setValue(userValue.toUpperCase()); // toUpperCase : 대문자 변환
+      setValue(userValue.toUpperCase());
     }
 
     function handleFormSubmit(e) {
       e.preventDefault();
       setErrorMessage("");
 
-      if (value === '') {
-        setErrorMessage('빈 값입니다.');
+      if (value === "") {
+        setErrorMessage("빈 값으로 만들 수 없습니다.");
         return;
       }
-
-      updateMainCat();
+      updateMainCat(value);
     }
 
     return (
@@ -86,91 +93,113 @@ body {
           onChange={handleInputChange}
         />
         <button type="submit">생성</button>
-        <p style={{color: 'red'}}>{errorMessage}</p>
+        <p style={{ color: "red" }}>{errorMessage}</p>
       </form>
     );
   };
 
   function CatItem(props) {
-    const style = {width: "150px"};
-
     return (
       <li>
-        <img src={props.img} style={style}/>
+        <img src={props.img} style={{ width: "150px" }} />
       </li>
     );
   }
 
-  // 좋아요
-  function Favorites({favorites}) {
+  function Favorites({ favorites }) {
+    if (favorites.length === 0) {
+      return <div>사진 위 하트를 눌러 고양이 사진을 저장해봐요!</div>;
+    }
+
     return (
       <ul className="favorites">
         {favorites.map((cat) => (
-          <CatItem img={cat} key={cat}/>
+          <CatItem img={cat} key={cat} />
         ))}
       </ul>
     );
   }
 
-  const MainCard = ({img, onHeartClick}) => {
+  const MainCard = ({ img, onHeartClick, alreadyFavorite }) => {
+    const heartIcon = alreadyFavorite ? "💖" : "🤍";
     return (
       <div className="main-card">
-        <img src={img} alt="고양이" width="400"/>
-        <button onClick={onHeartClick}>🤍</button>
+        <img src={img} alt="고양이" width="400" />
+        <button onClick={onHeartClick}>{heartIcon}</button>
       </div>
     );
   };
 
   const App = () => {
-    // 정적 데이터
-    const EMPTY_HEART = "🤍";
-    const FULL_HEART = "💖";
     const CAT1 = "https://cataas.com/cat/60b73094e04e18001194a309/says/react";
     const CAT2 = "https://cataas.com//cat/5e9970351b7a400011744233/says/inflearn";
     const CAT3 = "https://cataas.com/cat/595f280b557291a9750ebf65/says/JavaScript";
 
-    // counter : 기존 상태 데이터
-    // setCounter : 변경 상태 데이터
-    const [counter, setCounter] = React.useState(
-      jsonLocalStorage.getItem('counter')  // getItem 결과값 형태 : string
-    );
+    // const [counter, setCounter] = React.useState(
+    //   jsonLocalStorage.getItem("counter")
+    // );
+    const [counter,setCounter] = React.useState(() => {
+      return jsonLocalStorage.getItem("counter")
+    });
+
     const [mainCat, setMainCat] = React.useState(CAT1);
 
-    const [favorites, setFavorites] = React.useState(
-      localStorage.getItem('favorites') || [] // 빈 값 정의
-    );
+    // const [favorites, setFavorites] = React.useState(
+    //   jsonLocalStorage.getItem("favorites") || []
+    // );
+    const [favorites, setFavorites] = React.useState(() => {
+      return jsonLocalStorage.getItem("favorites") || []
+    })
 
-    // 상태 끌어 올리기(lifting state up) : 자식 컴퍼넌트 전달됩니다.
-    function updateMainCat() {
-      setMainCat(CAT2)
-      const nextCounter = counter + 1;
-      setCounter(nextCounter); // 상태 변경
-      localStorage.setItem("counter", nextCounter);
+    const alreadyFavorite = favorites.includes(mainCat);
+
+    async function setInitialCat() {
+      const newCat = await fetchCat("First cat");
+      console.log(newCat);
+      setMainCat(newCat);
     }
 
-    // 하위 컴퍼넌트로 컴퍼넌트(handleHeartClick) 전달합니다.
+    React.useEffect(() => {
+      setInitialCat();
+    }, []);
+
+    async function updateMainCat(value) {
+      const newCat = await fetchCat(value);
+
+      setMainCat(newCat);
+
+      setCounter((prev) => {
+        const nextCounter = prev + 1;
+        jsonLocalStorage.setItem("counter", nextCounter);
+        return nextCounter;
+      })
+    }
+
     function handleHeartClick() {
-      // 스프레드 오퍼레이터 문법
-      // 기본데이터 배열 데이터 + n
-      const nextFavorites = [...favorites, mainCat];// output : [CAT1, CAT2, CAT3]
+      const nextFavorites = [...favorites, mainCat];
       setFavorites(nextFavorites);
-      jsonLocalStorage.setItem('favorites', nextFavorites);
+      jsonLocalStorage.setItem("favorites", nextFavorites);
     }
 
-    // props 전달할때 핸들러명칭은 onHeartClick
+    const counterTitle = counter === null ? "" : counter + "번째 ";
+
     return (
       <div>
-        <Title>{counter}번째 고양이 가라사대</Title>
-        <Form updateMainCat={updateMainCat}/>
-        <MainCard img={mainCat} onHeartClick={handleHeartClick}/>
-        <Favorites favorites={favorites}/>
+        <Title>{counterTitle}고양이 가라사대</Title>
+        <Form updateMainCat={updateMainCat} />
+        <MainCard
+          img={mainCat}
+          onHeartClick={handleHeartClick}
+          alreadyFavorite={alreadyFavorite}
+        />
+        <Favorites favorites={favorites} />
       </div>
     );
   };
 
   const 여기다가그려 = document.querySelector("#app");
 
-  ReactDOM.render(<App/>, 여기다가그려);
+  ReactDOM.render(<App />, 여기다가그려);
 </script>
 </body>
 </html>

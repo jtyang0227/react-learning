@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>고양이 가라사대</title>
+</head>
+<style>
+    body {
+        text-align: center;
+    }
+
+    .main-card button {
+        position: relative;
+        left: -45px;
+        bottom: 15px;
+    }
+
+    .favorites {
+        list-style: none;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+</style>
+
+<body>
+<div id="app"></div>
+
+<!-- react cdm -->
+<script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<!-- react cdm -->
+
+
+<script type="text/babel">
+  // 저장 공간
+  const jsonLocalStorage = {
+    setItem: (key, value) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    },
+    getItem: (key) => {
+      return JSON.parse(localStorage.getItem(key));
+    },
+  };
+
+  // 통신 모듈
+  const fetchCat = async (text) => {
+    const OPEN_API_DOMAIN = "https://cataas.com";
+    const response = await fetch(`${OPEN_API_DOMAIN}/cat/says/${text}?json=true`);
+    const responseJson = await response.json();
+    return `${OPEN_API_DOMAIN}/${responseJson.url}`;
+  };
+
+
+  const Title = (props) => {
+    return <h1>{props.children}</h1>;
+  };
+
+  // 생성
+  const Form = ({updateMainCat}) => {
+    const includesHangul = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/i.test(text);
+    const [value, setValue] = React.useState("");
+    const [errorMessage, setErrorMessage] = React.useState('');
+
+    function handleInputChange(e) {
+      const userValue = e.target.value;
+      setErrorMessage("");
+
+      if (includesHangul(userValue)) {
+        setErrorMessage('한글은 입력할 수 없습니다.');
+      }
+
+      setValue(userValue.toUpperCase()); // toUpperCase : 대문자 변환
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      setErrorMessage("");
+
+      if (value === '') {
+        setErrorMessage('빈 값입니다.');
+        return;
+      }
+
+      updateMainCat(value);
+    }
+
+    return (
+      <form onSubmit={handleFormSubmit}>
+        <input
+          type="text"
+          name="name"
+          placeholder="영어 대사를 입력해주세요"
+          value={value}
+          onChange={handleInputChange}
+        />
+        <button type="submit">생성</button>
+        <p style={{color: 'red'}}>{errorMessage}</p>
+      </form>
+    );
+  };
+
+  function CatItem(props) {
+    const style = {width: "150px"};
+
+    return (
+      <li>
+        <img src={props.img} style={style}/>
+      </li>
+    );
+  }
+
+  // 좋아요
+  function Favorites({favorites}) {
+    return (
+      <ul className="favorites">
+        {favorites.map((cat) => (
+          <CatItem img={cat} key={cat}/>
+        ))}
+      </ul>
+    );
+  }
+
+  const MainCard = ({img, onHeartClick}) => {
+    return (
+      <div className="main-card">
+        <img src={img} alt="고양이" width="400"/>
+        <button onClick={onHeartClick}>🤍</button>
+      </div>
+    );
+  };
+
+  const App = () => {
+    // 정적 데이터
+    const EMPTY_HEART = "🤍";
+    const FULL_HEART = "💖";
+    const CAT1 = "https://cataas.com/cat/60b73094e04e18001194a309/says/react";
+    const CAT2 = "https://cataas.com//cat/5e9970351b7a400011744233/says/inflearn";
+    const CAT3 = "https://cataas.com/cat/595f280b557291a9750ebf65/says/JavaScript";
+
+    // counter : 기존 상태 데이터
+    // setCounter : 변경 상태 데이터
+    const [counter, setCounter] = React.useState(
+      jsonLocalStorage.getItem('counter')  // getItem 결과값 형태 : string
+    );
+    const [mainCat, setMainCat] = React.useState(CAT1);
+
+    const [favorites, setFavorites] = React.useState(
+      localStorage.getItem('favorites') || [] // 빈 값 정의
+    );
+
+    async function setInitialCat() {
+      const newCat = await fetchCat('First cat');
+      setMainCat(newCat);
+    }
+
+    // React Hooks
+    React.useEffect(() => {
+      setInitialCat();
+    }, [counter]); // [] : 라이프사이클 상태 옵션
+
+    // 상태 끌어 올리기(lifting state up) : 자식 컴퍼넌트 전달됩니다.
+    async function updateMainCat(value) {
+      // setMainCat(CAT2)
+
+      const newCat = await fetchCat(value); // open api add
+      setMainCat(newCat);
+
+      const nextCounter = counter + 1;
+      setCounter(nextCounter); // 상태 변경
+      localStorage.setItem("counter", nextCounter);
+    }
+
+    // 하위 컴퍼넌트로 컴퍼넌트(handleHeartClick) 전달합니다.
+    function handleHeartClick() {
+      // 스프레드 오퍼레이터 문법
+      // 기본데이터 배열 데이터 + n
+      const nextFavorites = [...favorites, mainCat];// output : [CAT1, CAT2, CAT3]
+      setFavorites(nextFavorites);
+      jsonLocalStorage.setItem('favorites', nextFavorites);
+    }
+
+    // props 전달할때 핸들러명칭은 onHeartClick
+    return (
+      <div>
+        <Title>{counter}번째 고양이 가라사대</Title>
+        <Form updateMainCat={updateMainCat}/>
+        <MainCard img={mainCat} onHeartClick={handleHeartClick}/>
+        <Favorites favorites={favorites}/>
+      </div>
+    );
+  };
+
+  const MyApp = document.querySelector("#app");
+
+  ReactDOM.render(<App/>, MyApp);
+</script>
+</body>
+</html>
