@@ -14,6 +14,7 @@ import Favorites from "./components/Favorites";
  * utils
  */
 import jsonLocalStorage from "./modules/utils/jsonLocalStorage";
+import Nav from "./components/common/Nav";
 
 
 const fetchCat = async (text) => {
